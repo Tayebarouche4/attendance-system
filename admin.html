@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b1120">
+<title>لوحة المدير — الحضور والانصراف</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root {
+    --bg: #0b1120;
+    --surface: #141e33;
+    --surface2: #1a2744;
+    --border: #1e3058;
+    --accent: #3b82f6;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --radius: 14px;
+  }
+
+  html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif;}
+
+  /* ── LAYOUT ── */
+  .sidebar {
+    position: fixed; top:0; right:0; width:240px; height:100vh;
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 24px 16px; gap: 8px;
+    z-index: 100;
+  }
+  .brand { font-size: 18px; font-weight: 900; padding: 8px 12px 20px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .brand span { color: var(--accent); }
+
+  .nav-item {
+    padding: 12px 14px; border-radius: 10px;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--muted); transition: all 0.15s;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: #fff; }
+
+  .main-content {
+    margin-right: 240px;
+    padding: 32px 28px;
+    min-height: 100vh;
+  }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .page-title { font-size: 22px; font-weight: 900; margin-bottom: 24px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+  /* ── STATS ROW ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+  }
+  .stat-val { font-size: 32px; font-weight: 900; }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .stat-card.blue .stat-val { color: var(--accent); }
+  .stat-card.green .stat-val { color: var(--success); }
+  .stat-card.red .stat-val { color: var(--danger); }
+  .stat-card.yellow .stat-val { color: var(--warn); }
+
+  /* ── FORM ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .form-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  .form-input select { width:100%; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 12px 20px; border: none; border-radius: 10px;
+    font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn:active { transform: none; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: var(--surface2); padding: 12px 14px; text-align: right; font-weight: 700; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 13px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+  }
+  .badge-green { background: rgba(34,197,94,0.15); color: var(--success); }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .badge-gray { background: rgba(100,116,139,0.15); color: var(--muted); }
+
+  /* ── FILTER BAR ── */
+  .filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-bar .form-input { max-width: 180px; }
+
+  /* ── MAP PICKER ── */
+  #mapPickerContainer {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  #mapPickerContainer.show { display: flex; }
+  .map-modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; width: 95%; max-width: 680px;
+  }
+  .map-modal-title { font-size: 18px; font-weight: 700; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+  #leafletMap { width:100%; height:380px; border-radius:10px; z-index:1; }
+  .map-coords-display {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; font-family: monospace; font-size: 14px; color: var(--accent);
+    margin: 12px 0; text-align: center; font-weight: 700;
+  }
+  .map-hint { font-size: 13px; color: var(--muted); margin-bottom: 10px; text-align:center; }
+
+  /* ── LOGIN ── */
+  #adminLogin {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 999;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 36px 32px; width: 100%; max-width: 380px;
+    display: flex; flex-direction: column; gap: 20px; text-align: center;
+  }
+  .login-icon { font-size: 48px; }
+  .login-title { font-size: 22px; font-weight: 900; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 600;
+    z-index: 9999; transition: transform 0.3s; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--success); color: var(--success); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:768px){
+    .sidebar{display:none;}
+    .main-content{margin-right:0;padding:16px;}
+    .stats-row{grid-template-columns:1fr 1fr;}
+    .form-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ ADMIN LOGIN ══ -->
+<div id="adminLogin">
+  <div class="login-box">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">لوحة المدير</div>
+    <div class="form-group">
+      <div class="form-label">كلمة مرور المدير</div>
+      <input type="password" class="form-input" id="adminPassInput" placeholder="أدخل كلمة المرور" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <button class="btn btn-primary" onclick="adminLogin()">دخول</button>
+    <div style="font-size:12px;color:var(--muted);" id="adminLoginErr"></div>
+  </div>
+</div>
+
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar">
+  <div class="brand">👷 <span>نظام</span> الحضور</div>
+  <div class="nav-item active" onclick="showPanel('dashboard')">📊 لوحة التحكم</div>
+  <div class="nav-item" onclick="showPanel('attendance')">📋 سجل الحضور</div>
+  <div class="nav-item" onclick="showPanel('workers')">👷 العمال</div>
+  <div class="nav-item" onclick="showPanel('sites')">📍 مواقع العمل</div>
+  <div class="nav-item" onclick="showPanel('reports')">💰 التقارير والرواتب</div>
+  <div style="margin-top:auto;">
+    <div class="nav-item" onclick="adminLogout()">🚪 خروج</div>
+  </div>
+</div>
+
+<!-- ══ MAIN CONTENT ══ -->
+<div class="main-content">
+
+  <!-- ── DASHBOARD ── -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="page-title">📊 لوحة التحكم</div>
+
+    <div class="stats-row">
+      <div class="stat-card blue"><div class="stat-val" id="statTotal">—</div><div class="stat-label">إجمالي العمال</div></div>
+      <div class="stat-card green"><div class="stat-val" id="statPresent">—</div><div class="stat-label">حاضرون الآن</div></div>
+      <div class="stat-card red"><div class="stat-val" id="statAbsent">—</div><div class="stat-label">غائبون اليوم</div></div>
+      <div class="stat-card yellow"><div class="stat-val" id="statSites">—</div><div class="stat-label">مواقع العمل</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🟢 العمال الحاضرون الآن</div>
+      <div class="table-wrap">
+        <table id="presentTable">
+          <thead><tr><th>الاسم</th><th>الموقع</th><th>وقت الدخول</th><th>المدة</th></tr></thead>
+          <tbody id="presentTbody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">جارٍ التحميل...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ATTENDANCE ── -->
+  <div class="panel" id="panel-attendance">
+    <div class="page-title">📋 سجل الحضور</div>
+    <div class="filter-bar">
+      <input type="date" class="form-input" id="attDate">
+      <select class="form-input" id="attWorker"><option value="">كل العمال</option></select>
+      <select class="form-input" id="attSite"><option value="">كل المواقع</option></select>
+      <button class="btn btn-primary" onclick="loadAttendance()">🔍 بحث</button>
+      <button class="btn btn-ghost" onclick="exportCSV()">📥 تصدير CSV</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>التاريخ</th><th>الاسم</th><th>الموقع</th><th>دخول</th><th>خروج</th><th>المدة</th><th>العمل المنجز</th><th>الموقع GPS</th></tr></thead>
+          <tbody id="attTbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">اختر تاريخاً للبحث</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WORKERS ── -->
+  <div class="panel" id="panel-workers">
+    <div class="page-title">👷 إدارة العمال</div>
+    <div class="card">
+      <div class="card-title">➕ إضافة عامل جديد</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <div class="form-label">الاسم الكامل</div>
+          <input class="form-input" id="wName" placeholder="محمد بن علي">
+        </div>
+        <div class="form-group">
+          <div class="form-label">كود PIN (4-6 أرقام)</div>
+          <input class="form-input" id="wPin" type="number" placeholder="مثال: 1234" maxlength="6">
+        </div>
+        <div class="form-group">
+          <div class="form-label">الموقع الافتراضي</div>
+          <select class="form-input" id="wSite"></select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">الأجر اليومي (دج)</div>
+          <input class="form-input" id="wWage" type="number" placeholder="2000">
+        </div>
+        <div class="form-group">
+          <div class="form-label">ملاحظات</div>
+          <input class="form-input" id="wNotes" placeholder="اختياري">
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-success" onclick="addWorker()">✅ إضافة العامل</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 قائمة العمال</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الاسم</th><th>PIN</th><th>الموقع الافتراضي</th><th>الأجر/يوم</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+          <tbody id="workersTbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">جارٍ التحميل...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SITES ── -->
+  <div class="panel" id="panel-sites">
+    <div class="page-title">📍 مواقع العمل</div>
+    <div class="card">
+      <div class="card-title">➕ إضافة موقع عمل</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <div class="form-label">اسم الموقع</div>
+          <input class="form-input" id="sName" placeholder="ورشة الميناء">
+        </div>
+        <div class="form-group">
+          <div class="form-label">النطاق المسموح (متر)</div>
+          <input class="form-input" id="sRadius" type="number" value="150">
+        </div>
+        <div class="form-group">
+          <div class="form-label">خط العرض (Lat)</div>
+          <input class="form-input" id="sLat" placeholder="35.69765" type="number" step="any">
+        </div>
+        <div class="form-group">
+          <div class="form-label">خط الطول (Lng)</div>
+          <input class="form-input" id="sLng" placeholder="-0.63455" type="number" step="any">
+        </div>
+        <div class="form-group full">
+          <button class="btn btn-ghost" onclick="openMapPicker()">🗺️ اختر الموقع من الخريطة</button>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-success" onclick="addSite()">✅ إضافة الموقع</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 قائمة المواقع</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الاسم</th><th>الإحداثيات</th><th>النطاق</th><th>عدد العمال</th><th>إجراءات</th></tr></thead>
+          <tbody id="sitesTbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">جارٍ التحميل...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REPORTS ── -->
+  <div class="panel" id="panel-reports">
+    <div class="page-title">💰 تقارير الرواتب</div>
+    <div class="filter-bar">
+      <input type="month" class="form-input" id="repMonth">
+      <select class="form-input" id="repWorker"><option value="">كل العمال</option></select>
+      <button class="btn btn-primary" onclick="loadReport()">📊 احتساب</button>
+      <button class="btn btn-ghost" onclick="exportReportCSV()">📥 تصدير</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الاسم</th><th>أيام العمل</th><th>إجمالي الساعات</th><th>الأجر/يوم</th><th>المستحق (دج)</th></tr></thead>
+          <tbody id="repTbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">اختر الشهر وابدأ الاحتساب</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" id="repSummary" style="display:none;">
+      <div class="card-title">📊 ملخص الشهر</div>
+      <div id="repSummaryContent"></div>
+    </div>
+  </div>
+
+</div><!-- end main-content -->
+
+<!-- ══ MAP PICKER MODAL ══ -->
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<div id="mapPickerContainer">
+  <div class="map-modal">
+    <div class="map-modal-title">🗺️ اختر موقع العمل</div>
+    <div class="map-hint">📌 انقر على الخريطة لوضع الدبوس — يمكنك تحريكه بعد وضعه</div>
+    <div id="leafletMap"></div>
+    <div class="map-coords-display" id="mapCoordsDisplay">انقر على الخريطة لاختيار الموقع</div>
+    <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="useMyLocation()">📍 موقعي الحالي</button>
+      <button class="btn btn-success" onclick="confirmLocation()" id="confirmLocBtn" disabled>✅ تأكيد الموقع</button>
+      <button class="btn btn-ghost" onclick="closeMapPicker()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7i1OiAj1qdjCf9UjrY5ofn9Rr27ckv8lrKCDxEIjSzVqt8JYoSbrQc8GRoyVnahoddQ/exec';
+const ADMIN_PASSWORD = 'ADMIN123'; // غيّر هذا!
+
+// ════════════════════════════════════════
+// ADMIN AUTH
+// ════════════════════════════════════════
+function adminLogin() {
+  const pass = document.getElementById('adminPassInput').value;
+  if (pass === ADMIN_PASSWORD) {
+    document.getElementById('adminLogin').style.display = 'none';
+    initAdmin();
+  } else {
+    document.getElementById('adminLoginErr').textContent = '❌ كلمة المرور غير صحيحة';
+  }
+}
+
+function adminLogout() {
+  document.getElementById('adminLogin').style.display = 'flex';
+  document.getElementById('adminPassInput').value = '';
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+let allWorkers = [], allSites = [];
+
+async function initAdmin() {
+  await Promise.all([loadWorkers(), loadSites()]);
+  loadDashboard();
+  // Set default dates
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('attDate').value = today;
+  const month = today.substring(0,7);
+  document.getElementById('repMonth').value = month;
+}
+
+// ════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════
+async function loadDashboard() {
+  try {
+    const res = await api('dashboard', {});
+    document.getElementById('statTotal').textContent = res.totalWorkers || 0;
+    document.getElementById('statPresent').textContent = res.presentCount || 0;
+    document.getElementById('statAbsent').textContent = (res.totalWorkers || 0) - (res.presentCount || 0);
+    document.getElementById('statSites').textContent = res.sitesCount || 0;
+
+    const tbody = document.getElementById('presentTbody');
+    if (!res.presentWorkers || res.presentWorkers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;">لا أحد في العمل الآن</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.presentWorkers.map(w => `
+      <tr>
+        <td><strong>${w.name}</strong></td>
+        <td><span class="badge badge-blue">${w.site}</span></td>
+        <td>${w.checkIn}</td>
+        <td><span class="badge badge-green">${w.elapsed}</span></td>
+      </tr>
+    `).join('');
+  } catch(e) { showToast('خطأ في تحميل البيانات', 'error'); }
+}
+
+// ════════════════════════════════════════
+// WORKERS
+// ════════════════════════════════════════
+async function loadWorkers() {
+  const res = await api('getWorkers', {});
+  allWorkers = res.workers || [];
+
+  // Fill selects
+  ['wSite', 'attWorker', 'repWorker'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const firstOpt = el.options[0]?.value === '' ? el.options[0].outerHTML : '';
+    el.innerHTML = firstOpt + allWorkers.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  });
+
+  const tbody = document.getElementById('workersTbody');
+  if (!allWorkers.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">لا يوجد عمال بعد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allWorkers.map(w => `
+    <tr>
+      <td><strong>${w.name}</strong></td>
+      <td><code style="background:var(--bg);padding:4px 8px;border-radius:6px;">${w.pin}</code></td>
+      <td>${w.site || '—'}</td>
+      <td>${(w.wage||0).toLocaleString('ar-DZ')} دج</td>
+      <td><span class="badge ${w.active ? 'badge-green' : 'badge-gray'}">${w.active ? 'نشط' : 'موقوف'}</span></td>
+      <td>
+        <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;" onclick="deleteWorker('${w.id}','${w.name}')">حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function addWorker() {
+  const name = document.getElementById('wName').value.trim();
+  const pin = document.getElementById('wPin').value.trim();
+  const site = document.getElementById('wSite').value;
+  const wage = document.getElementById('wWage').value;
+  const notes = document.getElementById('wNotes').value.trim();
+
+  if (!name || !pin) { showToast('الاسم وPIN إلزاميان', 'error'); return; }
+  if (pin.length < 4) { showToast('PIN يجب أن يكون 4 أرقام على الأقل', 'error'); return; }
+
+  const res = await api('addWorker', { name, pin, siteId: site, wage: parseFloat(wage)||0, notes });
+  if (res.success) {
+    showToast('✅ تم إضافة العامل', 'success');
+    ['wName','wPin','wWage','wNotes'].forEach(id => document.getElementById(id).value = '');
+    loadWorkers();
+  } else { showToast(res.message || 'فشل الإضافة', 'error'); }
+}
+
+async function deleteWorker(id, name) {
+  if (!confirm(`هل تريد حذف العامل ${name}؟`)) return;
+  const res = await api('deleteWorker', { workerId: id });
+  if (res.success) { showToast('تم الحذف', 'success'); loadWorkers(); }
+  else showToast('فشل الحذف', 'error');
+}
+
+// ════════════════════════════════════════
+// SITES
+// ════════════════════════════════════════
+async function loadSites() {
+  const res = await api('getSites', {});
+  allSites = res.sites || [];
+
+  // Fill site selects
+  ['wSite', 'attSite'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const firstOpt = el.options[0]?.value === '' ? el.options[0].outerHTML : '';
+    el.innerHTML = firstOpt + allSites.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  });
+
+  const tbody = document.getElementById('sitesTbody');
+  if (!allSites.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">لا يوجد مواقع بعد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allSites.map(s => `
+    <tr>
+      <td><strong>${s.name}</strong></td>
+      <td style="font-family:monospace;font-size:12px;">${s.lat}, ${s.lng}</td>
+      <td><span class="badge badge-blue">±${s.radius} م</span></td>
+      <td>${s.workerCount || 0} عامل</td>
+      <td>
+        <a href="https://maps.google.com/?q=${s.lat},${s.lng}" target="_blank" class="btn btn-ghost" style="padding:6px 12px;font-size:12px;text-decoration:none;">🗺️ خريطة</a>
+        <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;margin-right:6px;" onclick="deleteSite('${s.id}','${s.name}')">حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function addSite() {
+  const name = document.getElementById('sName').value.trim();
+  const lat = parseFloat(document.getElementById('sLat').value);
+  const lng = parseFloat(document.getElementById('sLng').value);
+  const radius = parseInt(document.getElementById('sRadius').value) || 150;
+
+  if (!name || isNaN(lat) || isNaN(lng)) { showToast('أدخل جميع بيانات الموقع', 'error'); return; }
+
+  const res = await api('addSite', { name, lat, lng, radius });
+  if (res.success) {
+    showToast('✅ تم إضافة الموقع', 'success');
+    ['sName','sLat','sLng'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('sRadius').value = '150';
+    loadSites();
+  } else showToast(res.message || 'فشل', 'error');
+}
+
+async function deleteSite(id, name) {
+  if (!confirm(`حذف موقع ${name}؟`)) return;
+  const res = await api('deleteSite', { siteId: id });
+  if (res.success) { showToast('تم الحذف', 'success'); loadSites(); }
+  else showToast('فشل الحذف', 'error');
+}
+
+// ════════════════════════════════════════
+// ATTENDANCE
+// ════════════════════════════════════════
+let attData = [];
+async function loadAttendance() {
+  const date = document.getElementById('attDate').value;
+  const workerId = document.getElementById('attWorker').value;
+  const siteId = document.getElementById('attSite').value;
+
+  const res = await api('getAttendance', { date, workerId, siteId });
+  attData = res.records || [];
+
+  const tbody = document.getElementById('attTbody');
+  if (!attData.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">لا توجد سجلات</td></tr>';
+    return;
+  }
+  tbody.innerHTML = attData.map(r => `
+    <tr>
+      <td>${r.date}</td>
+      <td><strong>${r.workerName}</strong></td>
+      <td>${r.site}</td>
+      <td><span class="badge badge-green">${r.checkIn || '—'}</span></td>
+      <td><span class="badge badge-red">${r.checkOut || 'لم يخرج'}</span></td>
+      <td>${r.duration || '—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${r.notes || '—'}</td>
+      <td>
+        ${r.lat ? `<a href="https://maps.google.com/?q=${r.lat},${r.lng}" target="_blank" style="color:var(--accent);font-size:12px;">📍 عرض</a>` : '—'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function exportCSV() {
+  if (!attData.length) { showToast('لا توجد بيانات', 'error'); return; }
+  const headers = ['التاريخ','الاسم','الموقع','الدخول','الخروج','المدة','ملاحظات'];
+  const rows = attData.map(r => [r.date, r.workerName, r.site, r.checkIn||'', r.checkOut||'', r.duration||'', r.notes||'']);
+  downloadCSV(headers, rows, 'حضور_' + document.getElementById('attDate').value);
+}
+
+// ════════════════════════════════════════
+// REPORTS
+// ════════════════════════════════════════
+let repData = [];
+async function loadReport() {
+  const month = document.getElementById('repMonth').value;
+  const workerId = document.getElementById('repWorker').value;
+
+  const res = await api('getReport', { month, workerId });
+  repData = res.report || [];
+
+  const tbody = document.getElementById('repTbody');
+  if (!repData.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">لا توجد بيانات</td></tr>';
+    return;
+  }
+
+  let totalPayroll = 0;
+  tbody.innerHTML = repData.map(r => {
+    totalPayroll += r.total || 0;
+    return `
+      <tr>
+        <td><strong>${r.workerName}</strong></td>
+        <td>${r.workDays} يوم</td>
+        <td>${r.totalHours} ساعة</td>
+        <td>${(r.dailyWage||0).toLocaleString('ar-DZ')} دج</td>
+        <td><strong style="color:var(--success)">${(r.total||0).toLocaleString('ar-DZ')} دج</strong></td>
+      </tr>
+    `;
+  }).join('');
+
+  const summary = document.getElementById('repSummary');
+  document.getElementById('repSummaryContent').innerHTML = `
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <div><div style="font-size:13px;color:var(--muted);">إجمالي الرواتب</div><div style="font-size:28px;font-weight:900;color:var(--success)">${totalPayroll.toLocaleString('ar-DZ')} دج</div></div>
+      <div><div style="font-size:13px;color:var(--muted);">عدد العمال</div><div style="font-size:28px;font-weight:900;color:var(--accent)">${repData.length}</div></div>
+    </div>
+  `;
+  summary.style.display = 'block';
+}
+
+function exportReportCSV() {
+  if (!repData.length) { showToast('لا توجد بيانات', 'error'); return; }
+  const headers = ['الاسم','أيام العمل','إجمالي الساعات','الأجر/يوم','المستحق (دج)'];
+  const rows = repData.map(r => [r.workerName, r.workDays, r.totalHours, r.dailyWage||0, r.total||0]);
+  downloadCSV(headers, rows, 'رواتب_' + document.getElementById('repMonth').value);
+}
+
+// ════════════════════════════════════════
+// MAP PICKER
+// ════════════════════════════════════════
+// ── LEAFLET MAP PICKER ──
+let leafletMap = null;
+let leafletMarker = null;
+let selectedLat = null;
+let selectedLng = null;
+
+function openMapPicker() {
+  document.getElementById('mapPickerContainer').classList.add('show');
+  // init map once
+  setTimeout(() => {
+    if (!leafletMap) {
+      leafletMap = L.map('leafletMap').setView([35.7, -0.64], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(leafletMap);
+
+      // Custom red pin icon
+      const pinIcon = L.divIcon({
+        html: '<div style="font-size:32px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">📍</div>',
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      });
+
+      // Click to place marker
+      leafletMap.on('click', function(e) {
+        selectedLat = e.latlng.lat;
+        selectedLng = e.latlng.lng;
+        if (leafletMarker) {
+          leafletMarker.setLatLng(e.latlng);
+        } else {
+          leafletMarker = L.marker(e.latlng, { icon: pinIcon, draggable: true }).addTo(leafletMap);
+          leafletMarker.on('dragend', function(ev) {
+            selectedLat = ev.target.getLatLng().lat;
+            selectedLng = ev.target.getLatLng().lng;
+            updateCoordsDisplay();
+          });
+        }
+        updateCoordsDisplay();
+        document.getElementById('confirmLocBtn').disabled = false;
+      });
+    }
+    leafletMap.invalidateSize();
+  }, 200);
+}
+
+function updateCoordsDisplay() {
+  const lat = selectedLat ? selectedLat.toFixed(6) : '';
+  const lng = selectedLng ? selectedLng.toFixed(6) : '';
+  document.getElementById('mapCoordsDisplay').textContent = lat
+    ? '📍 Lat: ' + lat + '   |   Lng: ' + lng
+    : 'انقر على الخريطة لاختيار الموقع';
+}
+
+function confirmLocation() {
+  if (!selectedLat || !selectedLng) return;
+  document.getElementById('sLat').value = selectedLat.toFixed(6);
+  document.getElementById('sLng').value = selectedLng.toFixed(6);
+  showToast('✅ تم تحديد الموقع', 'success');
+  closeMapPicker();
+}
+
+function closeMapPicker() {
+  document.getElementById('mapPickerContainer').classList.remove('show');
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) { showToast('GPS غير مدعوم', 'error'); return; }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    selectedLat = pos.coords.latitude;
+    selectedLng = pos.coords.longitude;
+    const latlng = L.latLng(selectedLat, selectedLng);
+
+    if (!leafletMap) { openMapPicker(); setTimeout(() => goToLocation(latlng), 500); return; }
+    goToLocation(latlng);
+  }, function() { showToast('تعذّر تحديد الموقع', 'error'); }, { enableHighAccuracy: true });
+}
+
+function goToLocation(latlng) {
+  leafletMap.setView(latlng, 16);
+  const pinIcon = L.divIcon({
+    html: '<div style="font-size:32px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">📍</div>',
+    className: '', iconSize: [32, 32], iconAnchor: [16, 32]
+  });
+  if (leafletMarker) {
+    leafletMarker.setLatLng(latlng);
+  } else {
+    leafletMarker = L.marker(latlng, { icon: pinIcon, draggable: true }).addTo(leafletMap);
+    leafletMarker.on('dragend', function(ev) {
+      selectedLat = ev.target.getLatLng().lat;
+      selectedLng = ev.target.getLatLng().lng;
+      updateCoordsDisplay();
+    });
+  }
+  updateCoordsDisplay();
+  document.getElementById('confirmLocBtn').disabled = false;
+}
+
+// ════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════
+async function api(action, data) {
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action, adminKey: ADMIN_PASSWORD, ...data })
+  });
+  return res.json();
+}
+
+function downloadCSV(headers, rows, filename) {
+  const BOM = '\uFEFF';
+  const content = BOM + [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename + '.csv';
+  a.click();
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
