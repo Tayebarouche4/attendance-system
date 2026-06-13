@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>تسجيل الحضور</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0b1120;
+    --surface: #141e33;
+    --surface2: #1a2744;
+    --border: #1e3058;
+    --accent: #3b82f6;
+    --accent-glow: rgba(59,130,246,0.25);
+    --success: #22c55e;
+    --success-glow: rgba(34,197,94,0.2);
+    --danger: #ef4444;
+    --danger-glow: rgba(239,68,68,0.2);
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --radius: 16px;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; min-height: 100vh; padding: 24px 20px; }
+  .screen.active { display: flex; }
+
+  /* ── LOGIN SCREEN ── */
+  #loginScreen {
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.12) 0%, transparent 70%), var(--bg);
+  }
+
+  .logo-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .logo-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 0 40px var(--accent-glow);
+  }
+  .logo-title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+  .logo-sub { font-size: 13px; color: var(--text-muted); }
+
+  .login-card {
+    width: 100%; max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+
+  .field-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; }
+
+  .pin-display {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    font-size: 32px;
+    letter-spacing: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    min-height: 64px;
+    transition: border-color 0.2s;
+  }
+  .pin-display.has-val { border-color: var(--accent); }
+
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .key {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 8px;
+    font-size: 22px;
+    font-weight: 700;
+    font-family: 'Cairo', sans-serif;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .key:active { background: var(--accent); transform: scale(0.94); }
+  .key.del { font-size: 18px; background: rgba(239,68,68,0.1); color: var(--danger); }
+  .key.del:active { background: var(--danger); color: #fff; }
+
+  .btn {
+    width: 100%; padding: 16px;
+    border: none; border-radius: 12px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    color: #fff;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .err-msg {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: var(--danger);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+  }
+  .err-msg.show { display: block; }
+
+  /* ── MAIN SCREEN ── */
+  #mainScreen { gap: 20px; }
+
+  .top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .worker-name { font-size: 20px; font-weight: 900; }
+  .worker-site { font-size: 13px; color: var(--text-muted); }
+  .logout-btn {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: var(--danger);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: 'Cairo', sans-serif;
+    cursor: pointer;
+  }
+
+  /* GPS STATUS */
+  .gps-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .gps-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-muted);
+    transition: background 0.3s;
+  }
+  .gps-dot.ok { background: var(--success); box-shadow: 0 0 10px var(--success-glow); animation: pulse 2s infinite; }
+  .gps-dot.err { background: var(--danger); }
+  .gps-dot.searching { background: var(--warn); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .gps-info { flex: 1; }
+  .gps-status { font-size: 14px; font-weight: 600; }
+  .gps-coords { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: monospace; }
+
+  /* LOCATION VERIFY */
+  .location-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .loc-icon { font-size: 28px; }
+  .loc-name { font-size: 16px; font-weight: 700; }
+  .loc-dist { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .loc-ok { color: var(--success); }
+  .loc-far { color: var(--danger); }
+
+  /* STATUS CARD */
+  .status-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .status-icon { font-size: 48px; }
+  .status-label { font-size: 14px; color: var(--text-muted); }
+  .status-time { font-size: 28px; font-weight: 900; color: var(--accent); }
+  .status-elapsed { font-size: 13px; color: var(--text-muted); }
+
+  /* TASK INPUT */
+  .task-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .task-title { font-size: 15px; font-weight: 700; }
+  .task-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    resize: none;
+    height: 90px;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .task-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ACTION BTNS */
+  .btn-checkin {
+    background: linear-gradient(135deg, var(--success), #16a34a);
+    color: #fff;
+    box-shadow: 0 4px 20px var(--success-glow);
+  }
+  .btn-checkout {
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    color: #fff;
+    box-shadow: 0 4px 20px var(--danger-glow);
+  }
+  .btn-checkin:active, .btn-checkout:active { transform: scale(0.97); }
+  .btn-checkin:disabled, .btn-checkout:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* TODAY LOG */
+  .log-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .log-title { font-size: 15px; font-weight: 700; }
+  .log-entry {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .log-type { font-size: 18px; }
+  .log-time { font-size: 14px; font-weight: 700; }
+  .log-note { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .log-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 12px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--success); color: var(--success); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  .spinner { display:none; }
+  .loading .spinner { display:inline-block; animation: spin 0.7s linear infinite; }
+  .loading .btn-text { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN SCREEN ══════════ -->
+<div class="screen active" id="loginScreen">
+  <div class="logo-wrap">
+    <div class="logo-icon">👷</div>
+    <div class="logo-title">حضور وانصراف</div>
+    <div class="logo-sub">سجّل دخولك بكود PIN</div>
+  </div>
+
+  <div class="login-card">
+    <div>
+      <div class="field-label">أدخل كود PIN الخاص بك</div>
+      <div class="pin-display" id="pinDisplay">—</div>
+    </div>
+
+    <div class="keypad">
+      <button class="key" onclick="addPin('1')">1</button>
+      <button class="key" onclick="addPin('2')">2</button>
+      <button class="key" onclick="addPin('3')">3</button>
+      <button class="key" onclick="addPin('4')">4</button>
+      <button class="key" onclick="addPin('5')">5</button>
+      <button class="key" onclick="addPin('6')">6</button>
+      <button class="key" onclick="addPin('7')">7</button>
+      <button class="key" onclick="addPin('8')">8</button>
+      <button class="key" onclick="addPin('9')">9</button>
+      <button class="key" onclick="clearPin()">مسح</button>
+      <button class="key" onclick="addPin('0')">0</button>
+      <button class="key del" onclick="deletePin()">⌫</button>
+    </div>
+
+    <div class="err-msg" id="loginErr">❌ كود غير صحيح، حاول مجدداً</div>
+
+    <button class="btn btn-primary" id="loginBtn" onclick="doLogin()" disabled>
+      <span class="spinner">⏳</span>
+      <span class="btn-text">دخول ←</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ MAIN SCREEN ══════════ -->
+<div class="screen" id="mainScreen">
+
+  <div class="top-bar">
+    <div>
+      <div class="worker-name" id="workerNameDisplay">—</div>
+      <div class="worker-site" id="workerSiteDisplay">—</div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">خروج</button>
+  </div>
+
+  <!-- GPS STATUS -->
+  <div class="gps-card">
+    <div class="gps-dot searching" id="gpsDot"></div>
+    <div class="gps-info">
+      <div class="gps-status" id="gpsStatus">جارٍ تحديد الموقع...</div>
+      <div class="gps-coords" id="gpsCoords">يرجى الانتظار</div>
+    </div>
+    <div id="gpsRefreshBtn" onclick="startGPS()" style="cursor:pointer;font-size:20px;opacity:0.6;">🔄</div>
+  </div>
+
+  <!-- LOCATION VERIFY -->
+  <div class="location-badge" id="locationBadge">
+    <div class="loc-icon">📍</div>
+    <div>
+      <div class="loc-name" id="locName">يتحقق من الموقع...</div>
+      <div class="loc-dist" id="locDist"></div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-card" id="statusCard">
+    <div class="status-icon" id="statusIcon">🟡</div>
+    <div class="status-label" id="statusLabel">لم تسجّل دخولك بعد</div>
+    <div class="status-time" id="statusTime"></div>
+    <div class="status-elapsed" id="statusElapsed"></div>
+  </div>
+
+  <!-- TASK -->
+  <div class="task-card">
+    <div class="task-title">📋 العمل المنجز / ملاحظات</div>
+    <textarea class="task-input" id="taskNotes" placeholder="اذكر ما أنجزته أو ما ستنجزه اليوم..."></textarea>
+  </div>
+
+  <!-- BUTTONS -->
+  <button class="btn btn-checkin" id="checkinBtn" onclick="doCheckIn()">
+    <span class="spinner">⏳</span>
+    <span class="btn-text">✅ تسجيل الدخول</span>
+  </button>
+
+  <button class="btn btn-checkout" id="checkoutBtn" onclick="doCheckOut()" style="display:none;">
+    <span class="spinner">⏳</span>
+    <span class="btn-text">🔴 تسجيل الخروج</span>
+  </button>
+
+  <!-- TODAY LOG -->
+  <div class="log-card" id="logCard">
+    <div class="log-title">📅 سجل اليوم</div>
+    <div id="logList"><div class="log-empty">لا توجد إدخالات اليوم</div></div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG — غيّر هذا برابط Apps Script
+// ════════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7i1OiAj1qdjCf9UjrY5ofn9Rr27ckv8lrKCDxEIjSzVqt8JYoSbrQc8GRoyVnahoddQ/exec';
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let pin = '';
+let worker = null;      // {id, name, site}
+let sites = [];         // [{id, name, lat, lng, radius}]
+let currentPos = null;  // {lat, lng, accuracy}
+let nearestSite = null; // closest site
+let checkedIn = false;
+let checkInTime = null;
+let elapsedTimer = null;
+
+// استعادة الجلسة عند فتح الصفحة
+(function restoreSession() {
+  try {
+    const savedWorker = sessionStorage.getItem('worker');
+    const savedSites  = sessionStorage.getItem('sites');
+    if (savedWorker) {
+      worker = JSON.parse(savedWorker);
+      sites  = savedSites ? JSON.parse(savedSites) : [];
+      showMain();
+    }
+  } catch(e) {}
+})();
+
+// ════════════════════════════════════════
+// PIN KEYPAD
+// ════════════════════════════════════════
+function addPin(d) {
+  if (pin.length >= 6) return;
+  pin += d;
+  renderPin();
+}
+function deletePin() {
+  pin = pin.slice(0, -1);
+  renderPin();
+}
+function clearPin() {
+  pin = '';
+  renderPin();
+}
+function renderPin() {
+  const el = document.getElementById('pinDisplay');
+  el.textContent = pin ? '●'.repeat(pin.length) : '—';
+  el.classList.toggle('has-val', pin.length > 0);
+  document.getElementById('loginBtn').disabled = pin.length < 4;
+  document.getElementById('loginErr').classList.remove('show');
+}
+
+// ════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  try {
+    const res = await apiCall('login', { pin });
+    if (res.success) {
+      worker = res.worker;
+      sites = res.sites || [];
+      // حفظ بيانات العامل محلياً
+      sessionStorage.setItem('worker', JSON.stringify(worker));
+      sessionStorage.setItem('sites', JSON.stringify(sites));
+      showMain();
+    } else {
+      document.getElementById('loginErr').classList.add('show');
+      clearPin();
+    }
+  } catch(e) {
+    showToast('خطأ في الاتصال بالخادم', 'error');
+  }
+
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+
+// ════════════════════════════════════════
+// MAIN SCREEN
+// ════════════════════════════════════════
+function showMain() {
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('mainScreen').classList.add('active');
+  document.getElementById('workerNameDisplay').textContent = worker.name;
+  document.getElementById('workerSiteDisplay').textContent = 'الموقع: ' + (worker.site || 'غير محدد');
+  startGPS();
+  loadTodayLog();
+}
+
+function doLogout() {
+  worker = null; pin = '';
+  checkedIn = false; checkInTime = null;
+  clearInterval(elapsedTimer);
+  currentPos = null; nearestSite = null;
+  sessionStorage.removeItem('worker');
+  sessionStorage.removeItem('sites');
+  renderPin();
+  document.getElementById('mainScreen').classList.remove('active');
+  document.getElementById('loginScreen').classList.add('active');
+}
+
+// ════════════════════════════════════════
+// GPS
+// ════════════════════════════════════════
+function startGPS() {
+  setGPSUI('searching', 'جارٍ تحديد الموقع...', 'يرجى السماح بالوصول للموقع');
+  if (!navigator.geolocation) {
+    setGPSUI('err', 'GPS غير مدعوم', '');
+    return;
+  }
+  navigator.geolocation.watchPosition(onGPSSuccess, onGPSError, {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 10000
+  });
+}
+
+function onGPSSuccess(pos) {
+  currentPos = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+  const acc = Math.round(currentPos.accuracy);
+  setGPSUI('ok', `دقة الموقع: ±${acc} م`, `${currentPos.lat.toFixed(5)}, ${currentPos.lng.toFixed(5)}`);
+  checkNearestSite();
+}
+
+function onGPSError(err) {
+  setGPSUI('err', 'تعذّر تحديد الموقع', err.message);
+  updateLocationBadge(null, null);
+}
+
+function setGPSUI(state, status, coords) {
+  const dot = document.getElementById('gpsDot');
+  dot.className = 'gps-dot ' + state;
+  document.getElementById('gpsStatus').textContent = status;
+  document.getElementById('gpsCoords').textContent = coords;
+}
+
+// ════════════════════════════════════════
+// SITE PROXIMITY CHECK
+// ════════════════════════════════════════
+function checkNearestSite() {
+  if (!currentPos || sites.length === 0) {
+    updateLocationBadge(null, null);
+    return;
+  }
+
+  let best = null, bestDist = Infinity;
+  for (const s of sites) {
+    const d = haversine(currentPos.lat, currentPos.lng, s.lat, s.lng);
+    if (d < bestDist) { bestDist = d; best = s; }
+  }
+  nearestSite = best;
+  updateLocationBadge(best, bestDist);
+}
+
+function updateLocationBadge(site, dist) {
+  const nameEl = document.getElementById('locName');
+  const distEl = document.getElementById('locDist');
+  const checkinBtn = document.getElementById('checkinBtn');
+
+  if (!site) {
+    nameEl.textContent = 'لم يتم تحديد الموقع';
+    nameEl.className = 'loc-name';
+    distEl.textContent = '';
+    if (!checkedIn) checkinBtn.disabled = true;
+    return;
+  }
+
+  const inZone = dist <= site.radius;
+  nameEl.textContent = site.name;
+  nameEl.className = 'loc-name ' + (inZone ? 'loc-ok' : 'loc-far');
+  distEl.textContent = inZone
+    ? `✅ أنت داخل النطاق (${Math.round(dist)} م)`
+    : `❌ أنت خارج النطاق — المسافة: ${Math.round(dist)} م (المسموح: ${site.radius} م)`;
+
+  if (!checkedIn) checkinBtn.disabled = !inZone;
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ════════════════════════════════════════
+// CHECK IN / OUT
+// ════════════════════════════════════════
+async function doCheckIn() {
+  if (!currentPos) { showToast('انتظر تحديد الموقع', 'error'); return; }
+  if (!nearestSite || haversine(currentPos.lat, currentPos.lng, nearestSite.lat, nearestSite.lng) > nearestSite.radius) {
+    showToast('أنت خارج نطاق العمل!', 'error'); return;
+  }
+
+  const btn = document.getElementById('checkinBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const notes = document.getElementById('taskNotes').value.trim();
+    const res = await apiCall('checkin', {
+      workerId: worker.id,
+      siteId: nearestSite.id,
+      lat: currentPos.lat,
+      lng: currentPos.lng,
+      accuracy: currentPos.accuracy,
+      notes
+    });
+
+    if (res.success) {
+      checkedIn = true;
+      checkInTime = new Date();
+      updateStatusUI();
+      loadTodayLog();
+      showToast('✅ تم تسجيل الدخول', 'success');
+      document.getElementById('checkinBtn').style.display = 'none';
+      document.getElementById('checkoutBtn').style.display = 'block';
+      startElapsedTimer();
+    } else {
+      showToast(res.message || 'فشل التسجيل', 'error');
+    }
+  } catch(e) {
+    showToast('خطأ في الاتصال', 'error');
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+}
+
+async function doCheckOut() {
+  if (!currentPos) { showToast('انتظر تحديد الموقع', 'error'); return; }
+
+  // تحقق من الموقع عند الخروج أيضاً
+  if (!nearestSite || haversine(currentPos.lat, currentPos.lng, nearestSite.lat, nearestSite.lng) > nearestSite.radius) {
+    showToast('❌ أنت خارج نطاق العمل — لا يمكن تسجيل الخروج', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('checkoutBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const notes = document.getElementById('taskNotes').value.trim();
+    const res = await apiCall('checkout', {
+      workerId: worker.id,
+      lat: currentPos.lat,
+      lng: currentPos.lng,
+      notes
+    });
+
+    if (res.success) {
+      checkedIn = false;
+      clearInterval(elapsedTimer);
+      updateStatusUI(res.duration);
+      loadTodayLog();
+      showToast('🔴 تم تسجيل الخروج', 'success');
+      document.getElementById('checkoutBtn').style.display = 'none';
+      document.getElementById('checkinBtn').style.display = 'block';
+      document.getElementById('checkinBtn').disabled = false;
+    } else {
+      showToast(res.message || 'فشل التسجيل', 'error');
+    }
+  } catch(e) {
+    showToast('خطأ في الاتصال: ' + e.message, 'error');
+  }
+
+  btn.classList.remove('loading'); btn.disabled = false;
+}
+
+// ════════════════════════════════════════
+// STATUS UI
+// ════════════════════════════════════════
+function updateStatusUI(duration) {
+  const icon = document.getElementById('statusIcon');
+  const label = document.getElementById('statusLabel');
+  const time = document.getElementById('statusTime');
+
+  if (checkedIn && checkInTime) {
+    icon.textContent = '🟢';
+    label.textContent = 'أنت في العمل منذ';
+    time.textContent = formatTime(checkInTime);
+  } else if (duration) {
+    icon.textContent = '✔️';
+    label.textContent = 'انتهيت من العمل — مدة العمل';
+    time.textContent = duration;
+  } else {
+    icon.textContent = '🟡';
+    label.textContent = 'لم تسجّل دخولك بعد';
+    time.textContent = '';
+  }
+}
+
+function startElapsedTimer() {
+  clearInterval(elapsedTimer);
+  elapsedTimer = setInterval(() => {
+    if (!checkInTime) return;
+    const elapsed = Date.now() - checkInTime.getTime();
+    const h = Math.floor(elapsed / 3600000);
+    const m = Math.floor((elapsed % 3600000) / 60000);
+    const s = Math.floor((elapsed % 60000) / 1000);
+    document.getElementById('statusElapsed').textContent =
+      `مدة العمل: ${pad(h)}:${pad(m)}:${pad(s)}`;
+  }, 1000);
+}
+
+function formatTime(d) {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+// ════════════════════════════════════════
+// TODAY LOG
+// ════════════════════════════════════════
+async function loadTodayLog() {
+  try {
+    const res = await apiCall('todayLog', { workerId: worker.id });
+    const list = document.getElementById('logList');
+    if (!res.entries || res.entries.length === 0) {
+      list.innerHTML = '<div class="log-empty">لا توجد إدخالات اليوم</div>';
+      return;
+    }
+    list.innerHTML = res.entries.map(e => `
+      <div class="log-entry">
+        <div class="log-type">${e.type === 'in' ? '🟢' : '🔴'}</div>
+        <div>
+          <div class="log-time">${e.type === 'in' ? 'دخول' : 'خروج'} — ${e.time}</div>
+          ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
+          ${e.site ? `<div class="log-note">📍 ${e.site}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    // Restore state
+    const lastEntry = res.entries[res.entries.length - 1];
+    if (lastEntry.type === 'in') {
+      checkedIn = true;
+      checkInTime = new Date();
+      const [h, m] = lastEntry.time.split(':');
+      checkInTime.setHours(parseInt(h), parseInt(m), 0, 0);
+      updateStatusUI();
+      document.getElementById('checkinBtn').style.display = 'none';
+      document.getElementById('checkoutBtn').style.display = 'block';
+      startElapsedTimer();
+    } else {
+      checkedIn = false;
+      document.getElementById('checkinBtn').style.display = 'block';
+      document.getElementById('checkoutBtn').style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════
+// API
+// ════════════════════════════════════════
+async function apiCall(action, data = {}) {
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action, ...data })
+  });
+  return res.json();
+}
+
+// ════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
